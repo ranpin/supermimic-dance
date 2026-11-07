@@ -64,7 +64,7 @@
       <h2 class="ds-h2">演示</h2>
       <div class="sd-task">
         <p><b>你在看什么</b>：左边是<b>输入</b>——2025 春晚群舞视频的高潮选段（29–37s）；右边是<b>输出</b>——Unitree G1 人形机器人在 MuJoCo <b>物理仿真</b>里跳同一支舞。机器人不是回放关节角：一个只在 mocap 数据（LAFAN1）上训练过的跟踪策略<b>从没见过这段舞</b>，它每个控制步（50 Hz）读自己的本体感知 + 未来 10 帧参考动作，输出关节目标，由物理引擎算出平衡、接地与全身动力学——<b>摔了就是摔了，没有运动学兜底</b>。</p>
-        <p><b>怎么读画面</b>：视频顶部标签条给出管线、图例与指标。右panel里<b>实体机器人</b> = 策略驱动的物理仿真结果，<b>青色半透明虚影</b> = 从视频重定向出的参考动作（同一世界坐标系）——两者贴得越近，跟踪越准。</p>
+        <p><b>怎么读画面</b>：视频顶部标签条给出管线、图例与指标。hero 视频右侧面板里<b>实体机器人</b> = 策略驱动的物理仿真结果，<b>青色半透明虚影</b> = 从视频重定向出的参考动作（同一世界坐标系）——两者贴得越近，跟踪越准；齐舞视频为 <b>9 台实体机器人同一场景</b>（无虚影）。</p>
       </div>
 
       <div class="sd-vcard"><figure>
@@ -74,9 +74,9 @@
       </figure></div>
 
       <div class="sd-vcard"><figure>
-        <video controls preload="metadata" src="assets/demo_grid.mp4"></video>
-        <figcaption class="sd-vcap"><b>9 台 G1 齐舞 · 各自跟踪对应舞者的重定向动作</b>（3×3 网格，与左侧输入视频同一时间窗）<br>
-        9 条 8s 选段全部完片 · <span class="sd-ok">0 失败</span> · return 0.553–0.764（均值 0.687）· 关节 MAE 5.8–8.4°</figcaption>
+        <video controls preload="metadata" src="assets/demo_formation.mp4"></video>
+        <figcaption class="sd-vcap"><b>9 台 G1 同一场景齐舞 · 各自跟踪对应舞者的重定向动作</b>（与左侧输入视频同一时间窗；9 条独立物理闭环合成到同一场景回放——舞者间无接触交互，与 9 次单独仿真物理等价；镜头跟随队形质心与朝向）<br>
+        9 条 8s 选段全部完片 · <span class="sd-ok">0 失败</span> · return 0.553–0.764（均值 0.687）· 关节 MAE 5.8–8.4° · 队形保持（相对散开 ≤0.9m）</figcaption>
       </figure></div>
 
       <p class="demo-note">两条视频均为<b>零样本</b>结果：策略权重是 SuperMimic-MuJoCo 复现仓发布的 98k checkpoint（训练集只有 LAFAN1 的 40 条 mocap 重定向动作），对本舞蹈<b>无任何微调</b>。hero 视频后段实体与虚影会渐渐分开 = 纯本体感知策略的<b>世界系全局漂移</b>（舞姿本身保持同步，漂的是舞台位置）——量化见「评测结果」的世界系根漂移列。前作 <a href="https://ranpin.github.io/spring-festival-dance-robot/" target="_blank" rel="noopener">spring-festival-dance-robot</a> 是同一支视频的运动学重定向回放（无物理），本页是它的物理版续作。</p>
@@ -91,7 +91,7 @@
         <div class="stat"><div class="v">9/9</div><div class="k">全片 39.3s 完片<br>0 失败（无摔倒/无提前终止）</div></div>
         <div class="stat"><div class="v">0.639–0.760</div><div class="k">全片 return<br>发布参照：库内 0.871 / OOD 0.805</div></div>
         <div class="stat"><div class="v">6.5–8.2<small>°</small></div><div class="k">全片关节 MAE<br>= OOD 发布带（6.99°）量级</div></div>
-        <div class="stat"><div class="v">9/9</div><div class="k">8s 高潮选段完片<br>9 机网格视频同源（共窗 29–37s）</div></div>
+        <div class="stat"><div class="v">9/9</div><div class="k">8s 高潮选段完片<br>九机同场景视频同源（共窗 29–37s）</div></div>
       </div>
 
       <div class="ds-tablewrap"><table class="ds-table">
@@ -113,7 +113,7 @@
       <p class="sec-note">¹ 参照行 = 同一 98k checkpoint 在 SuperMimic-MuJoCo README 的发布口径（LAFAN1 库内 40 条 / 100STYLE 未见 3573 条），非本页重跑。<b>结论：视频重定向舞蹈的关节精度（6.5–8.2°）正落在该策略的 OOD 发布带（6.99°）</b>——比 mocap 库内（4.40°）噪、与未见 mocap 同级，符合「视频 HMR 比重定向 mocap 噪声大」的预期。世界系根漂移随片长累积（纯本体感知观测的已知行为）；对齐 MPJPE 仅 4.8–6.4cm ⇒ <b>舞姿贴合、漂的是舞台全局位置</b>——这也是 demo 用 8s 选段的理由（表 2 根位置误差降到全片的 ~1/3）。</p>
 
       <div class="ds-tablewrap"><table class="ds-table">
-        <caption>表 2 · 选段评测（共同时间窗 29–37s，8s 高潮段，同一 checkpoint 零样本）——回答「demo 所用选段上的跟踪质量」，9 机网格视频即此窗</caption>
+        <caption>表 2 · 选段评测（共同时间窗 29–37s，8s 高潮段，同一 checkpoint 零样本）——回答「demo 所用选段上的跟踪质量」，九机同场景视频即此窗</caption>
         <tr><th>舞者</th><th>return</th><th>关节 MAE</th><th>对齐 MPJPE</th><th>根位置误差</th><th>完片</th></tr>
         <tr><td class="rowh">track1</td><td class="num">0.7107</td><td class="num">6.10°</td><td class="num">5.02cm</td><td class="num">0.65m</td><td class="ctr"><span class="best">✓</span></td></tr>
         <tr><td class="rowh">track2</td><td class="num">0.6303</td><td class="num">7.99°</td><td class="num">6.55cm</td><td class="num">1.01m</td><td class="ctr"><span class="best">✓</span></td></tr>
@@ -126,7 +126,7 @@
         <tr><td class="rowh">track9</td><td class="num">0.5527</td><td class="num">8.44°</td><td class="num">7.28cm</td><td class="num">1.28m</td><td class="ctr"><span class="best">✓</span></td></tr>
         <tr><td class="rowh">均值</td><td class="num">0.6866</td><td class="num">6.67°</td><td class="num">5.72cm</td><td class="num">0.92m</td><td class="ctr">9/9</td></tr>
       </table></div>
-      <p class="sec-note"><b>两表的轴</b>：表 1 = 整支舞全片（回答「能否完整跟下来」，漂移随片长累积）；表 2 = 演示视频所用的 8s 共同时间窗（回答「选段上的跟踪质量」，9 机同窗保证网格视频时间对齐）。<b>选段规则</b>（<code>select_excerpt.py</code>，预登记后执行）：全片 rollout 上滑 8s 窗，在「平均舞蹈强度（参考关节角速度）≥80°/s」的窗口里取<b>最差舞者误差最小</b>者 → [29, 37]s（强度 84°/s、最差 8.24°）。选段 return 均值 0.687 略低于全片均值 0.702——高潮段动作更快更难跟，属预期而非退化；根位置误差 0.65–1.28m ≈ 全片的 1/3，印证短选段压漂移。</p>
+      <p class="sec-note"><b>两表的轴</b>：表 1 = 整支舞全片（回答「能否完整跟下来」，漂移随片长累积）；表 2 = 演示视频所用的 8s 共同时间窗（回答「选段上的跟踪质量」，9 机同窗保证同场景齐舞视频时间对齐）。<b>选段规则</b>（<code>select_excerpt.py</code>，预登记后执行）：全片 rollout 上滑 8s 窗，在「平均舞蹈强度（参考关节角速度）≥80°/s」的窗口里取<b>最差舞者误差最小</b>者 → [29, 37]s（强度 84°/s、最差 8.24°）。选段 return 均值 0.687 略低于全片均值 0.702——高潮段动作更快更难跟，属预期而非退化；根位置误差 0.65–1.28m ≈ 全片的 1/3，印证短选段压漂移。</p>
       <p class="sec-note"><b>诚实边界</b>：① 纯仿真（MuJoCo），无真机部署；② 零样本单 checkpoint，无微调、无逐动作调参；③ 视频重定向环节本身有失败率——相关先行工作 <a href="https://github.com/seerier/Humanoid-Motion" target="_blank" rel="noopener">seerier/Humanoid-Motion</a> 实测 8 条视频 2 条败在重定向（GMR IK 局部极小）并被其审计门逮住；本项目直接复用前作已产出且经人工目检的重定向产物，<b>未重跑审计门</b>，「任意视频输入」需配审计门才成立；④ 春晚素材仅作非商业技术演示。</p>
     </section>
 
@@ -167,7 +167,7 @@
           <!-- 物理闭环反馈边（虚线：本体感知回灌策略） -->
           <path class="dg-edge dg-dash" data-from="sd-physics" data-to="sd-policy" d="M915,92 V132 H750 V98" fill="none" marker-end="url(#sd-dg-arr)"/>
           <text class="dg-note" x="500" y="152" text-anchor="middle">50 Hz 物理闭环：策略 = 本体感知 + 未来 10 帧参考 → 关节目标；MuJoCo 状态回灌 · 零样本（策略只见过 LAFAN1 mocap）</text>
-          <text class="dg-note" x="500" y="172" text-anchor="middle">输出：物理仿真中的 G1 关节轨迹（评测 return / MAE / MPJPE · 渲染 ghost 对比与网格视频）</text>
+          <text class="dg-note" x="500" y="172" text-anchor="middle">输出：物理仿真中的 G1 关节轨迹（评测 return / MAE / MPJPE · 渲染 ghost 对比与九机同场景齐舞视频）</text>
           <!-- 脉冲环（与数据包 6s 周期同相位） -->
           <rect class="dg-ring" x="18" y="27" width="122" height="66" rx="11" stroke="var(--ds-accent)" opacity="0">
             <animate attributeName="opacity" values="0;.85;0;0" keyTimes="0;.04;.18;1" dur="6s" begin="indefinite" repeatCount="indefinite"/>

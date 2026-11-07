@@ -70,10 +70,15 @@ python select_excerpt.py eval/excerpts_all9.json \
   --record "$SUPERMIMIC_EXPERIMENT_ROOT/excerpts_common/rollout.npz" \
   --clip excerpt_track4 --output "$SUPERMIMIC_EXPERIMENT_ROOT/assets/hero_track4_ghost.mp4" \
   --robot g1_29dof --comparison ghost --gl glfw
-# 网格面板：--comparison policy --width 320 --height 240，逐 clip 渲染 9 条
+# 九机同场景齐舞（本仓 render_formation.py）：MjSpec attach ×9 组装单场景，
+# 回放 excerpts_common/rollout.npz 的 9 条已录物理状态（时间对齐），
+# 跟随相机（平滑质心+朝向），分割渲染取景自检（9 机必须全在画面内）
+<SuperMimic-MuJoCo venv>/bin/python render_formation.py \
+  eval/excerpts_common/rollout.npz eval/assets/formation_raw.mp4
 
 # 标签条 + 合成（本仓）
 python make_label.py eval/assets/label_hero.png 1494 120 "<行1>" "<行2>" "<行3>"
+python make_label.py eval/assets/label_formation.png 1920 120 "<行1>" "<行2>" "<行3>"
 bash composite_demo_videos.sh
 ```
 
