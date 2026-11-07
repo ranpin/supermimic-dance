@@ -1,0 +1,146 @@
+{
+ "track1": {
+  "clip_mean_err_deg": 6.907235143560008,
+  "window_err_median_deg": 7.012421525490711,
+  "n_windows": 63,
+  "best": {
+   "t0": 1325,
+   "t1": 1725,
+   "err_deg": 6.879185691543714,
+   "err_max_deg": 10.872143438001883,
+   "intensity_deg_s": 99.28346101976805,
+   "t0_sec": 26.5,
+   "t1_sec": 34.5,
+   "src_frame0": 795,
+   "src_frame1": 1035
+  }
+ },
+ "track2": {
+  "clip_mean_err_deg": 6.896163996972631,
+  "window_err_median_deg": 6.957146872927158,
+  "n_windows": 63,
+  "best": {
+   "t0": 75,
+   "t1": 475,
+   "err_deg": 6.603607253057398,
+   "err_max_deg": 10.365503655268343,
+   "intensity_deg_s": 74.25749838242696,
+   "t0_sec": 1.5,
+   "t1_sec": 9.5,
+   "src_frame0": 45,
+   "src_frame1": 285
+  }
+ },
+ "track3": {
+  "clip_mean_err_deg": 6.507926653657792,
+  "window_err_median_deg": 6.455698589287343,
+  "n_windows": 63,
+  "best": {
+   "t0": 1450,
+   "t1": 1850,
+   "err_deg": 6.348846344573236,
+   "err_max_deg": 12.27963103675483,
+   "intensity_deg_s": 87.48028521029332,
+   "t0_sec": 29.0,
+   "t1_sec": 37.0,
+   "src_frame0": 870,
+   "src_frame1": 1110
+  }
+ },
+ "track4": {
+  "clip_mean_err_deg": 6.488342627205386,
+  "window_err_median_deg": 6.456079332046195,
+  "n_windows": 63,
+  "best": {
+   "t0": 1400,
+   "t1": 1800,
+   "err_deg": 6.403908830077359,
+   "err_max_deg": 10.835799686725714,
+   "intensity_deg_s": 72.22666887135756,
+   "t0_sec": 28.0,
+   "t1_sec": 36.0,
+   "src_frame0": 840,
+   "src_frame1": 1080
+  }
+ },
+ "track5": {
+  "clip_mean_err_deg": 6.514759465411193,
+  "window_err_median_deg": 6.481655765413077,
+  "n_windows": 63,
+  "best": {
+   "t0": 1400,
+   "t1": 1800,
+   "err_deg": 6.017899539939298,
+   "err_max_deg": 9.82603335156969,
+   "intensity_deg_s": 86.82695312818254,
+   "t0_sec": 28.0,
+   "t1_sec": 36.0,
+   "src_frame0": 840,
+   "src_frame1": 1080
+  }
+ },
+ "track6": {
+  "clip_mean_err_deg": 6.951385281649736,
+  "window_err_median_deg": 6.936224566805695,
+  "n_windows": 63,
+  "best": {
+   "t0": 1400,
+   "t1": 1800,
+   "err_deg": 6.936224566805695,
+   "err_max_deg": 11.428429744258333,
+   "intensity_deg_s": 92.23702730144807,
+   "t0_sec": 28.0,
+   "t1_sec": 36.0,
+   "src_frame0": 840,
+   "src_frame1": 1080
+  }
+ },
+ "track7": {
+  "clip_mean_err_deg": 7.220243059162171,
+  "window_err_median_deg": 7.122887642614658,
+  "n_windows": 63,
+  "best": {
+   "t0": 1450,
+   "t1": 1850,
+   "err_deg": 6.8934510426147195,
+   "err_max_deg": 12.043083695191335,
+   "intensity_deg_s": 83.5977567386573,
+   "t0_sec": 29.0,
+   "t1_sec": 37.0,
+   "src_frame0": 870,
+   "src_frame1": 1110
+  }
+ },
+ "track8": {
+  "clip_mean_err_deg": 7.048158096984008,
+  "window_err_median_deg": 7.039862660604672,
+  "n_windows": 63,
+  "best": {
+   "t0": 1550,
+   "t1": 1950,
+   "err_deg": 6.809416020713417,
+   "err_max_deg": 12.014141833960434,
+   "intensity_deg_s": 84.51456595626864,
+   "t0_sec": 31.0,
+   "t1_sec": 39.0,
+   "src_frame0": 930,
+   "src_frame1": 1170
+  }
+ },
+ "track9": {
+  "clip_mean_err_deg": 8.183398189667075,
+  "window_err_median_deg": 8.195649510679319,
+  "n_windows": 63,
+  "best": {
+   "t0": 1200,
+   "t1": 1600,
+   "err_deg": 8.151008689183875,
+   "err_max_deg": 14.087779087505584,
+   "intensity_deg_s": 80.48008475053298,
+   "t0_sec": 24.0,
+   "t1_sec": 32.0,
+   "src_frame0": 720,
+   "src_frame1": 960
+  }
+ }
+}

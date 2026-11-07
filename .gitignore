@@ -1,0 +1,18 @@
+# Python / macOS
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# LAFAN1 retargeted CSVs — LAFAN1 is CC BY-NC-ND 4.0 (Ubisoft La Forge), not redistributed here.
+# Download g1/*.csv from https://huggingface.co/datasets/lvhaidong/LAFAN1_Retargeting_Dataset
+motions/lafan_g1/
+
+# intermediate render/eval artifacts — final demo videos live in docs/assets/;
+# re-run make_label.py + composite_demo_videos.sh to regenerate
+eval/assets/
+eval/**/*.log
+eval/**/*.npz
+eval/**/*.mp4
+eval/**/*.png
+eval/**/*.video.json

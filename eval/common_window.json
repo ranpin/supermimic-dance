@@ -1,0 +1,9 @@
+{
+ "t0_sec": 29.0,
+ "t1_sec": 37.0,
+ "src_frame0": 870,
+ "src_frame1": 1110,
+ "max_err_deg": 8.237776695391151,
+ "mean_err_deg": 6.7306260583761786,
+ "mean_intensity_deg_s": 84.01501900502788
+}

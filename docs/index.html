@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>春晚舞蹈视频 → 物理仿真 G1 零样本跳舞 · supermimic-dance</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕺</text></svg>">
+<!-- 共享演示页外壳（配色/页头/章节/三线表/科研插图/明暗主题，单一事实源在主站 public/demo-shell.css） -->
+<link rel="stylesheet" href="https://ranpin.github.io/demo-shell.css">
+<script src="https://ranpin.github.io/theme.js"></script>
+<meta property="og:title" content="春晚舞蹈视频 → 物理仿真 G1 零样本跳舞">
+<meta property="og:description" content="2025 春晚群舞视频经 PromptHMR + GMR 重定向后，由 SuperMimic 复现策略（98k checkpoint，LAFAN1 训练）在 MuJoCo 物理仿真中零样本跟踪：9/9 舞者全片 39.3s 完片零失败，关节 MAE 6.5–8.2° 落在该策略的 OOD 发布带。纯仿真、无真机、无微调，全链 macOS 纯 CPU 可复现。">
+<meta property="og:url" content="https://ranpin.github.io/supermimic-dance/">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://ranpin.github.io/supermimic-dance/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  /* 页面专属视觉；结构色一律引用外壳 --ds-* 变量，不写死 hex（明暗双主题都要成立） */
+  .sec-lead{color:var(--ds-muted); font-size:13.5px; margin:0 0 16px; line-height:1.65;}
+  .sec-lead a{color:var(--ds-accent);}
+  .sec-note{color:var(--ds-muted); font-size:12.5px; margin-top:12px; line-height:1.65;}
+  .sec-note a{color:var(--ds-accent);}
+  code{background:var(--ds-code-bg); border:1px solid var(--ds-border); border-radius:5px; padding:1px 6px; font-family:var(--ds-mono); font-size:12.5px; color:var(--ds-accent-strong);}
+
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:4px 0 18px;}
+  @media (max-width:720px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:var(--ds-panel); border:1px solid var(--ds-border); border-radius:var(--ds-radius); padding:16px 14px; text-align:center;}
+  .stat .v{font-size:23px; font-weight:700; color:var(--ds-accent); line-height:1.15; font-variant-numeric:tabular-nums;}
+  .stat .v small{font-size:13px; font-weight:600;}
+  .stat .k{font-size:12px; color:var(--ds-muted); margin-top:6px; line-height:1.45;}
+
+  /* 演示：任务说明 + 视频卡 */
+  .sd-task{background:var(--ds-panel); border:1px solid var(--ds-border); border-radius:var(--ds-radius); padding:.75rem 1rem; margin:0 0 1rem;}
+  .sd-task p{margin:.4rem 0;}
+  .sd-vcard{margin:18px 0 6px;}
+  .sd-vcard figure{margin:0; text-align:center;}
+  .sd-vcard video{width:100%; height:auto; border-radius:10px; border:1px solid var(--ds-border); box-shadow:0 2px 14px rgba(0,0,0,.10); background:#000;}
+  .sd-vcap{font-size:12.5px; color:var(--ds-muted); margin-top:8px; line-height:1.6; text-align:center;}
+  .sd-vcap b{color:var(--ds-text);}
+  .sd-ok{color:var(--ds-ok); font-weight:700;}
+  .demo-note{color:var(--ds-muted); font-size:12.5px; margin-top:14px; line-height:1.65;}
+
+  .ds-table .num{text-align:right; font-variant-numeric:tabular-nums;}
+  .ds-table .ctr{text-align:center;}
+  .best{color:var(--ds-ok); font-weight:700;}
+  .ref-row td{color:var(--ds-muted);}
+</style>
+</head>
+<body>
+  <header class="ds-header">
+    <div class="ds-header__inner">
+      <div class="ds-header__row">
+        <a class="ds-home" href="https://ranpin.github.io/">← 返回主页</a>
+        <h1>春晚舞蹈视频 → 物理仿真 G1 零样本跳舞</h1>
+        <button class="ds-theme-btn" type="button" onclick="toggleTheme()" aria-label="切换明暗主题"><span class="ds-theme-icon">🌙</span></button>
+      </div>
+      <p class="ds-header__sub">supermimic-dance · 2025 春晚群舞视频 → PromptHMR + GMR 重定向（9 名舞者）→ SuperMimic 复现策略（98k checkpoint，LAFAN1 训练）在 MuJoCo 物理仿真中<b>零样本</b>跟踪 · 纯仿真、无真机、无微调</p>
+    </div>
+  </header>
+
+  <div class="ds-wrap">
+    <!-- ============ 演示 ============ -->
+    <section class="ds-section" id="demo">
+      <h2 class="ds-h2">演示</h2>
+      <div class="sd-task">
+        <p><b>你在看什么</b>：左边是<b>输入</b>——2025 春晚群舞视频的高潮选段（29–37s）；右边是<b>输出</b>——Unitree G1 人形机器人在 MuJoCo <b>物理仿真</b>里跳同一支舞。机器人不是回放关节角：一个只在 mocap 数据（LAFAN1）上训练过的跟踪策略<b>从没见过这段舞</b>，它每个控制步（50 Hz）读自己的本体感知 + 未来 10 帧参考动作，输出关节目标，由物理引擎算出平衡、接地与全身动力学——<b>摔了就是摔了，没有运动学兜底</b>。</p>
+        <p><b>怎么读画面</b>：视频顶部标签条给出管线、图例与指标。右panel里<b>实体机器人</b> = 策略驱动的物理仿真结果，<b>青色半透明虚影</b> = 从视频重定向出的参考动作（同一世界坐标系）——两者贴得越近，跟踪越准。</p>
+      </div>
+
+      <div class="sd-vcard"><figure>
+        <video controls preload="metadata" src="assets/demo_hero.mp4"></video>
+        <figcaption class="sd-vcap"><b>舞者 4 · 输入视频选段 ｜ 物理跟踪（ghost 对比）</b><br>
+        8s 选段完片 · <span class="sd-ok">0 失败</span> · return 0.764（9 名舞者最高）· 关节 MAE 6.1° · 对齐 MPJPE 4.6cm</figcaption>
+      </figure></div>
+
+      <div class="sd-vcard"><figure>
+        <video controls preload="metadata" src="assets/demo_grid.mp4"></video>
+        <figcaption class="sd-vcap"><b>9 台 G1 齐舞 · 各自跟踪对应舞者的重定向动作</b>（3×3 网格，与左侧输入视频同一时间窗）<br>
+        9 条 8s 选段全部完片 · <span class="sd-ok">0 失败</span> · return 0.553–0.764（均值 0.687）· 关节 MAE 5.8–8.4°</figcaption>
+      </figure></div>
+
+      <p class="demo-note">两条视频均为<b>零样本</b>结果：策略权重是 SuperMimic-MuJoCo 复现仓发布的 98k checkpoint（训练集只有 LAFAN1 的 40 条 mocap 重定向动作），对本舞蹈<b>无任何微调</b>。hero 视频后段实体与虚影会渐渐分开 = 纯本体感知策略的<b>世界系全局漂移</b>（舞姿本身保持同步，漂的是舞台位置）——量化见「评测结果」的世界系根漂移列。前作 <a href="https://ranpin.github.io/spring-festival-dance-robot/" target="_blank" rel="noopener">spring-festival-dance-robot</a> 是同一支视频的运动学重定向回放（无物理），本页是它的物理版续作。</p>
+    </section>
+
+    <!-- ============ 评测结果 ============ -->
+    <section class="ds-section" id="results">
+      <h2 class="ds-h2">评测结果</h2>
+      <p class="sec-lead"><b>测试数据与协议</b>：输入 = 2025 春晚舞蹈片段 <code>dance_1.mp4</code>（39.3s / 1180 帧 @30fps，Datawhale video2robot 教程自带素材），PromptHMR 检出 <b>9 名舞者</b>、GMR 逐人重定向为 G1 29-DoF 参考动作。跟踪策略 = <b>SuperMimic-MuJoCo 复现 98k checkpoint</b>（LAFAN1 40 条 G1 重定向动作训练，零样本、无微调）。评测 = MuJoCo 原生 <b>CPU</b>（macOS arm64）、50 Hz 控制、每条从参考首帧跑到尾帧、无噪声无域随机化（确定性评测，无 seed 方差）。<b>指标口径</b>：<code>return</code> = 评测器归一化跟踪回报（越高越好，1 为参考级）；<code>关节 MAE</code> = 策略关节角 vs 参考关节角平均绝对误差（度）；<code>对齐 MPJPE</code> = 按 xy+yaw 对齐后 14 个跟踪刚体的平均每关节位置误差（cm，衡量舞姿贴合度）；<code>世界系根漂移</code> = 根位置与参考的世界系欧氏距离均值（m，衡量全局位置漂移）。</p>
+
+      <div class="stats">
+        <div class="stat"><div class="v">9/9</div><div class="k">全片 39.3s 完片<br>0 失败（无摔倒/无提前终止）</div></div>
+        <div class="stat"><div class="v">0.639–0.760</div><div class="k">全片 return<br>发布参照：库内 0.871 / OOD 0.805</div></div>
+        <div class="stat"><div class="v">6.5–8.2<small>°</small></div><div class="k">全片关节 MAE<br>= OOD 发布带（6.99°）量级</div></div>
+        <div class="stat"><div class="v">9/9</div><div class="k">8s 高潮选段完片<br>9 机网格视频同源（共窗 29–37s）</div></div>
+      </div>
+
+      <div class="ds-tablewrap"><table class="ds-table">
+        <caption>表 1 · 全片评测（39.3s 整支舞，SuperMimic-MuJoCo 98k checkpoint 零样本）——回答「能不能完整跟下来」</caption>
+        <tr><th>舞者</th><th>return</th><th>关节 MAE</th><th>对齐 MPJPE</th><th>世界系根漂移</th><th>完片</th></tr>
+        <tr><td class="rowh">track1</td><td class="num">0.7032</td><td class="num">6.91°</td><td class="num">5.85cm</td><td class="num">2.31m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track2</td><td class="num">0.6989</td><td class="num">6.90°</td><td class="num">5.36cm</td><td class="num">2.88m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track3</td><td class="num">0.6968</td><td class="num">6.51°</td><td class="num">5.33cm</td><td class="num">3.01m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track4</td><td class="num"><span class="best">0.7602</span></td><td class="num">6.49°</td><td class="num"><span class="best">4.75cm</span></td><td class="num"><span class="best">1.67m</span></td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track5</td><td class="num">0.7411</td><td class="num">6.51°</td><td class="num">5.16cm</td><td class="num">2.23m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track6</td><td class="num">0.6856</td><td class="num">6.95°</td><td class="num">6.32cm</td><td class="num">3.40m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track7</td><td class="num">0.6934</td><td class="num">7.22°</td><td class="num">5.80cm</td><td class="num">3.58m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track8</td><td class="num">0.7037</td><td class="num">7.05°</td><td class="num">5.69cm</td><td class="num">2.36m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track9</td><td class="num">0.6386</td><td class="num">8.18°</td><td class="num">6.40cm</td><td class="num">4.54m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">均值</td><td class="num">0.7024</td><td class="num">6.97°</td><td class="num">5.63cm</td><td class="num">2.89m</td><td class="ctr">9/9</td></tr>
+        <tr class="ref-row"><td class="rowh">参照 · LAFAN1 库内¹</td><td class="num">0.871</td><td class="num">4.40°</td><td class="num">—</td><td class="num">—</td><td class="ctr">40/40</td></tr>
+        <tr class="ref-row"><td class="rowh">参照 · 100STYLE OOD¹</td><td class="num">0.805</td><td class="num">6.99°</td><td class="num">—</td><td class="num">—</td><td class="ctr">3569/3573</td></tr>
+      </table></div>
+      <p class="sec-note">¹ 参照行 = 同一 98k checkpoint 在 SuperMimic-MuJoCo README 的发布口径（LAFAN1 库内 40 条 / 100STYLE 未见 3573 条），非本页重跑。<b>结论：视频重定向舞蹈的关节精度（6.5–8.2°）正落在该策略的 OOD 发布带（6.99°）</b>——比 mocap 库内（4.40°）噪、与未见 mocap 同级，符合「视频 HMR 比重定向 mocap 噪声大」的预期。世界系根漂移随片长累积（纯本体感知观测的已知行为）；对齐 MPJPE 仅 4.8–6.4cm ⇒ <b>舞姿贴合、漂的是舞台全局位置</b>——这也是 demo 用 8s 选段的理由（表 2 根位置误差降到全片的 ~1/3）。</p>
+
+      <div class="ds-tablewrap"><table class="ds-table">
+        <caption>表 2 · 选段评测（共同时间窗 29–37s，8s 高潮段，同一 checkpoint 零样本）——回答「demo 所用选段上的跟踪质量」，9 机网格视频即此窗</caption>
+        <tr><th>舞者</th><th>return</th><th>关节 MAE</th><th>对齐 MPJPE</th><th>根位置误差</th><th>完片</th></tr>
+        <tr><td class="rowh">track1</td><td class="num">0.7107</td><td class="num">6.10°</td><td class="num">5.02cm</td><td class="num">0.65m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track2</td><td class="num">0.6303</td><td class="num">7.99°</td><td class="num">6.55cm</td><td class="num">1.01m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track3</td><td class="num">0.6777</td><td class="num">6.40°</td><td class="num">5.95cm</td><td class="num">0.81m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track4（hero）</td><td class="num"><span class="best">0.7640</span></td><td class="num">6.07°</td><td class="num"><span class="best">4.61cm</span></td><td class="num">0.79m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track5</td><td class="num">0.7620</td><td class="num"><span class="best">5.83°</span></td><td class="num">5.08cm</td><td class="num">0.73m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track6</td><td class="num">0.7102</td><td class="num">6.04°</td><td class="num">5.88cm</td><td class="num">0.68m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track7</td><td class="num">0.6813</td><td class="num">6.68°</td><td class="num">5.89cm</td><td class="num">1.24m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track8</td><td class="num">0.6901</td><td class="num">6.45°</td><td class="num">5.21cm</td><td class="num">1.05m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">track9</td><td class="num">0.5527</td><td class="num">8.44°</td><td class="num">7.28cm</td><td class="num">1.28m</td><td class="ctr"><span class="best">✓</span></td></tr>
+        <tr><td class="rowh">均值</td><td class="num">0.6866</td><td class="num">6.67°</td><td class="num">5.72cm</td><td class="num">0.92m</td><td class="ctr">9/9</td></tr>
+      </table></div>
+      <p class="sec-note"><b>两表的轴</b>：表 1 = 整支舞全片（回答「能否完整跟下来」，漂移随片长累积）；表 2 = 演示视频所用的 8s 共同时间窗（回答「选段上的跟踪质量」，9 机同窗保证网格视频时间对齐）。<b>选段规则</b>（<code>select_excerpt.py</code>，预登记后执行）：全片 rollout 上滑 8s 窗，在「平均舞蹈强度（参考关节角速度）≥80°/s」的窗口里取<b>最差舞者误差最小</b>者 → [29, 37]s（强度 84°/s、最差 8.24°）。选段 return 均值 0.687 略低于全片均值 0.702——高潮段动作更快更难跟，属预期而非退化；根位置误差 0.65–1.28m ≈ 全片的 1/3，印证短选段压漂移。</p>
+      <p class="sec-note"><b>诚实边界</b>：① 纯仿真（MuJoCo），无真机部署；② 零样本单 checkpoint，无微调、无逐动作调参；③ 视频重定向环节本身有失败率——相关先行工作 <a href="https://github.com/seerier/Humanoid-Motion" target="_blank" rel="noopener">seerier/Humanoid-Motion</a> 实测 8 条视频 2 条败在重定向（GMR IK 局部极小）并被其审计门逮住；本项目直接复用前作已产出且经人工目检的重定向产物，<b>未重跑审计门</b>，「任意视频输入」需配审计门才成立；④ 春晚素材仅作非商业技术演示。</p>
+    </section>
+
+    <!-- ============ 核心方法 ============ -->
+    <section class="ds-section" id="method">
+      <h2 class="ds-h2">核心方法</h2>
+      <div class="ds-dgwrap">
+        <svg class="ds-dg" viewBox="0 0 1000 190" role="img" aria-label="管线动态图：舞蹈视频 → PromptHMR（SMPL-X 人体姿态）→ GMR 重定向（G1 29-DoF 关节序列）→ 格式转换（joblib）→ SuperMimic 98k 跟踪策略 → MuJoCo 物理仿真，物理状态经本体感知回灌策略构成 50Hz 闭环；数据包沿主链穿行，节点按到达时刻脉冲">
+          <defs>
+            <marker id="sd-dg-arr" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+              <polygon points="0 0, 9 3.5, 0 7" fill="var(--ds-faint)"/>
+            </marker>
+            <linearGradient id="sd-g-accent" class="dg-grad" data-c="accent" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--ds-accent-soft)"/><stop offset="1" stop-color="var(--ds-accent-soft)"/>
+            </linearGradient>
+            <linearGradient id="sd-g-alt" class="dg-grad" data-c="alt" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--ds-alt-soft)"/><stop offset="1" stop-color="var(--ds-alt-soft)"/>
+            </linearGradient>
+            <linearGradient id="sd-g-ok" class="dg-grad" data-c="ok" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--ds-ok-soft)"/><stop offset="1" stop-color="var(--ds-ok-soft)"/>
+            </linearGradient>
+            <linearGradient id="sd-g-warn" class="dg-grad" data-c="warn" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="var(--ds-warn-soft)"/><stop offset="1" stop-color="var(--ds-warn-soft)"/>
+            </linearGradient>
+            <symbol id="ico-video" viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10.5 22 7v10l-6-3.5z"/><path d="m7.5 9.5 5 2.5-5 2.5z"/></symbol>
+            <symbol id="ico-person" viewBox="0 0 24 24"><circle cx="12" cy="4.5" r="2.2"/><path d="M12 7v6m0 0-3.5 6M12 13l3.5 6M6 9.5 12 8l6 1.5"/></symbol>
+            <symbol id="ico-robot" viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="2.5"/><circle cx="12" cy="4" r="1.8"/><path d="M12 5.8V8M9 12.5h.01M15 12.5h.01M9.5 16h5"/></symbol>
+            <symbol id="ico-convert" viewBox="0 0 24 24"><path d="M4 8h13l-3.5-3.5M20 16H7l3.5 3.5"/></symbol>
+            <symbol id="ico-brain" viewBox="0 0 24 24"><path d="M9 3a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 1 5 3 3 0 0 0 4 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"/><path d="M15 3a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-1 5 3 3 0 0 1-4 3 3 3 0 0 1-3-3"/></symbol>
+            <symbol id="ico-physics" viewBox="0 0 24 24"><path d="M3 20h18"/><circle cx="7.5" cy="6" r="2.4"/><circle cx="16" cy="14.5" r="2.4"/><path d="M9.4 8.1Q13 10.5 14.3 12.4" stroke-dasharray="2 2"/></symbol>
+          </defs>
+          <!-- 连线（层序：连线 → 脉冲环 → 数据包 → 节点组） -->
+          <line class="dg-edge" data-from="sd-video" data-to="sd-hmr" x1="142" y1="60" x2="168" y2="60" marker-end="url(#sd-dg-arr)"/>
+          <line class="dg-edge" data-from="sd-hmr" data-to="sd-gmr" x1="322" y1="60" x2="348" y2="60" marker-end="url(#sd-dg-arr)"/>
+          <line class="dg-edge" data-from="sd-gmr" data-to="sd-conv" x1="502" y1="60" x2="528" y2="60" marker-end="url(#sd-dg-arr)"/>
+          <line class="dg-edge" data-from="sd-conv" data-to="sd-policy" x1="642" y1="60" x2="668" y2="60" marker-end="url(#sd-dg-arr)"/>
+          <line class="dg-edge" data-from="sd-policy" data-to="sd-physics" x1="832" y1="60" x2="858" y2="60" marker-end="url(#sd-dg-arr)"/>
+          <!-- 物理闭环反馈边（虚线：本体感知回灌策略） -->
+          <path class="dg-edge dg-dash" data-from="sd-physics" data-to="sd-policy" d="M915,92 V132 H750 V98" fill="none" marker-end="url(#sd-dg-arr)"/>
+          <text class="dg-note" x="500" y="152" text-anchor="middle">50 Hz 物理闭环：策略 = 本体感知 + 未来 10 帧参考 → 关节目标；MuJoCo 状态回灌 · 零样本（策略只见过 LAFAN1 mocap）</text>
+          <text class="dg-note" x="500" y="172" text-anchor="middle">输出：物理仿真中的 G1 关节轨迹（评测 return / MAE / MPJPE · 渲染 ghost 对比与网格视频）</text>
+          <!-- 脉冲环（与数据包 6s 周期同相位） -->
+          <rect class="dg-ring" x="18" y="27" width="122" height="66" rx="11" stroke="var(--ds-accent)" opacity="0">
+            <animate attributeName="opacity" values="0;.85;0;0" keyTimes="0;.04;.18;1" dur="6s" begin="indefinite" repeatCount="indefinite"/>
+          </rect>
+          <rect class="dg-ring" x="170" y="27" width="150" height="66" rx="11" stroke="var(--ds-alt)" opacity="0">
+            <animate attributeName="opacity" values="0;0;.85;0;0" keyTimes="0;.17;.21;.37;1" dur="6s" begin="indefinite" repeatCount="indefinite"/>
+          </rect>
+          <rect class="dg-ring" x="350" y="27" width="150" height="66" rx="11" stroke="var(--ds-alt)" opacity="0">
+            <animate attributeName="opacity" values="0;0;.85;0;0" keyTimes="0;.38;.42;.58;1" dur="6s" begin="indefinite" repeatCount="indefinite"/>
+          </rect>
+          <rect class="dg-ring" x="530" y="27" width="110" height="66" rx="11" stroke="var(--ds-alt)" opacity="0">
+            <animate attributeName="opacity" values="0;0;.85;0;0" keyTimes="0;.57;.61;.76;1" dur="6s" begin="indefinite" repeatCount="indefinite"/>
+          </rect>
+          <rect class="dg-ring" x="670" y="27" width="160" height="66" rx="11" stroke="var(--ds-ok)" opacity="0">
+            <animate attributeName="opacity" values="0;0;.85;0;0" keyTimes="0;.75;.79;.93;1" dur="6s" begin="indefinite" repeatCount="indefinite"/>
+          </rect>
+          <rect class="dg-ring" x="860" y="27" width="112" height="66" rx="11" stroke="var(--ds-warn)" opacity="0">
+            <animate attributeName="opacity" values="0;0;.85;0" keyTimes="0;.93;.97;1" dur="6s" begin="indefinite" repeatCount="indefinite"/>
+          </rect>
+          <!-- 数据包：主链单包 6s 匀速穿行（画在盒子下层，盒间空隙可见） -->
+          <g transform="translate(79,60)"><g class="dg-packet-g" opacity="0">
+            <circle r="8" fill="var(--ds-alt)" opacity=".22"/>
+            <circle r="3.2" fill="var(--ds-alt)"/>
+            <animateMotion dur="6s" begin="indefinite" repeatCount="indefinite" calcMode="linear" path="M0,0 H836"/>
+            <animate attributeName="opacity" from="1" to="1" dur="6s" begin="indefinite" repeatCount="indefinite"/>
+          </g></g>
+          <!-- 六节点主链 -->
+          <g class="dg-node" data-id="sd-video" style="--dg-glow:var(--ds-accent);--dg-i:0">
+            <rect x="20" y="30" width="118" height="60" rx="8" fill="url(#sd-g-accent)" stroke="var(--ds-accent)" stroke-width="1.4"/>
+            <use class="dg-ico" href="#ico-video" x="29" y="39" width="14" height="14" style="color:var(--ds-accent)"/>
+            <text class="dg-name" x="79" y="56" text-anchor="middle">舞蹈视频</text>
+            <text class="dg-sub" x="79" y="71" text-anchor="middle">单目 RGB · 39.3s</text>
+            <text class="dg-sub" x="79" y="84" text-anchor="middle">9 名舞者</text>
+          </g>
+          <g class="dg-node" data-id="sd-hmr" style="--dg-glow:var(--ds-alt);--dg-i:1">
+            <rect x="172" y="30" width="146" height="60" rx="8" fill="url(#sd-g-alt)" stroke="var(--ds-alt)" stroke-width="1.4"/>
+            <use class="dg-ico" href="#ico-person" x="181" y="39" width="14" height="14" style="color:var(--ds-alt)"/>
+            <text class="dg-name" x="245" y="56" text-anchor="middle">PromptHMR</text>
+            <text class="dg-sub" x="245" y="71" text-anchor="middle">视频帧 → SMPL-X</text>
+            <text class="dg-sub" x="245" y="84" text-anchor="middle">逐舞者人体姿态序列</text>
+          </g>
+          <g class="dg-node" data-id="sd-gmr" style="--dg-glow:var(--ds-alt);--dg-i:2">
+            <rect x="352" y="30" width="146" height="60" rx="8" fill="url(#sd-g-alt)" stroke="var(--ds-alt)" stroke-width="1.4"/>
+            <use class="dg-ico" href="#ico-robot" x="361" y="39" width="14" height="14" style="color:var(--ds-alt)"/>
+            <text class="dg-name" x="425" y="56" text-anchor="middle">GMR 重定向</text>
+            <text class="dg-sub" x="425" y="71" text-anchor="middle">SMPL-X → G1 29-DoF</text>
+            <text class="dg-sub" x="425" y="84" text-anchor="middle">关节角 + 根轨迹 · 30fps</text>
+          </g>
+          <g class="dg-node" data-id="sd-conv" style="--dg-glow:var(--ds-alt);--dg-i:3">
+            <rect x="532" y="30" width="106" height="60" rx="8" fill="url(#sd-g-alt)" stroke="var(--ds-alt)" stroke-width="1.4"/>
+            <use class="dg-ico" href="#ico-convert" x="541" y="39" width="14" height="14" style="color:var(--ds-alt)"/>
+            <text class="dg-name" x="585" y="56" text-anchor="middle">格式转换</text>
+            <text class="dg-sub" x="585" y="71" text-anchor="middle">pkl → joblib</text>
+            <text class="dg-sub" x="585" y="84" text-anchor="middle">xyzw · SDK 关节序</text>
+          </g>
+          <g class="dg-node" data-id="sd-policy" style="--dg-glow:var(--ds-ok);--dg-i:4">
+            <rect x="672" y="30" width="156" height="60" rx="8" fill="url(#sd-g-ok)" stroke="var(--ds-ok)" stroke-width="1.4"/>
+            <use class="dg-ico" href="#ico-brain" x="681" y="39" width="14" height="14" style="color:var(--ds-ok)"/>
+            <text class="dg-name" x="750" y="56" text-anchor="middle">SuperMimic 98k 策略</text>
+            <text class="dg-sub" x="750" y="71" text-anchor="middle">本体感知 + 未来 10 帧参考</text>
+            <text class="dg-sub" x="750" y="84" text-anchor="middle">→ 关节目标 · 零样本</text>
+          </g>
+          <g class="dg-node" data-id="sd-physics" style="--dg-glow:var(--ds-warn);--dg-i:5">
+            <rect x="862" y="30" width="110" height="60" rx="8" fill="url(#sd-g-warn)" stroke="var(--ds-warn)" stroke-width="1.4"/>
+            <use class="dg-ico" href="#ico-physics" x="871" y="39" width="14" height="14" style="color:var(--ds-warn)"/>
+            <text class="dg-name" x="917" y="56" text-anchor="middle">MuJoCo 物理</text>
+            <text class="dg-sub" x="917" y="71" text-anchor="middle">50 Hz 闭环仿真</text>
+            <text class="dg-sub" x="917" y="84" text-anchor="middle">平衡 / 接地 / 碰撞</text>
+          </g>
+        </svg>
+        <div class="dg-legend">
+          <span style="--c:var(--ds-accent)"><i></i>输入（视频）</span>
+          <span style="--c:var(--ds-alt)"><i></i>动作处理（重定向链）</span>
+          <span style="--c:var(--ds-ok)"><i></i>跟踪策略</span>
+          <span style="--c:var(--ds-warn)"><i></i>物理仿真</span>
+        </div>
+      </div>
+      <p class="ds-figcap">图 1 · 视频 → 物理跟踪全管线：舞蹈视频 → PromptHMR（逐舞者 SMPL-X）→ GMR 重定向（G1 29-DoF，30fps）→ 格式转换（joblib）→ SuperMimic 98k 策略（本体感知 + 未来 10 帧参考 → 关节目标）→ MuJoCo 50Hz 物理闭环；策略零样本（训练集只有 LAFAN1 mocap）</p>
+
+      <p class="sec-lead"><b>输入 / 输出</b>：系统吃一段<b>单目舞蹈视频</b>（本例 39.3s 春晚群舞，检出 9 名舞者），吐<b>物理仿真中 G1 人形机器人跟踪该舞蹈的 29-DoF 关节轨迹</b>（50 Hz）+ 评测指标（return / 关节 MAE / 对齐 MPJPE / 根漂移）+ 渲染视频。逐环节 I/O：<b>PromptHMR</b>（视频帧 → 逐舞者 SMPL-X 姿态序列，Kaggle GPU 跑）；<b>GMR</b>（SMPL-X → G1 关节角 + 根位姿，30fps，IK 重定向）；<b>格式转换</b>（GMR pkl → SuperMimic joblib：<code>root_rot</code> 本就是 xyzw 四元数、<code>dof_pos</code> 本就是 Unitree SDK 关节序、米制 z-up——纯字段映射，含形状/有限性/四元数范数断言）；<b>SuperMimic 策略</b>（本体感知观测 + 未来 10 帧参考动作 → 关节位置目标，PD 控制 @50Hz）；<b>MuJoCo</b>（关节目标 → 物理状态，回灌策略构成闭环）。</p>
+      <p class="sec-note"><b>部署与复现</b>：评测/渲染全链在 <b>macOS arm64 纯 CPU</b> 本地跑通（SuperMimic-MuJoCo 官方仅在 Linux x86_64 验证，Mac 实测 43 项契约检查全过 + 评测复现发布口径 + 渲染 <code>--gl glfw</code> 可用；安装须跳过含 CUDA 包的官方 lock、按 pyproject 纯依赖装）。重推理（PromptHMR/GMR）复用前作 Kaggle 产物。完整步骤见 <a href="https://github.com/ranpin/supermimic-dance/blob/main/docs/REPRODUCE.md" target="_blank" rel="noopener">REPRODUCE.md</a>。</p>
+      <p class="sec-note"><b>致谢与来源</b>：SuperMimic = Liao, Abbeel, Sreenath（UC Berkeley，arXiv 2610.28480，官方未放代码）；本页用的移植与 98k checkpoint 来自 <a href="https://github.com/panhainan2020/SuperMimic-MuJoCo" target="_blank" rel="noopener">panhainan2020/SuperMimic-MuJoCo</a>；GMR（ICRA 2026，arXiv 2510.02252）与 PromptHMR 经 <a href="https://github.com/ranpin/spring-festival-dance-robot" target="_blank" rel="noopener">spring-festival-dance-robot</a>（Datawhale every-embodied 教程复刻）vendored；相关先行工作 <a href="https://github.com/seerier/Humanoid-Motion" target="_blank" rel="noopener">seerier/Humanoid-Motion</a>（MIT，首次展示视频导出参考被 SuperMimic/BeyondMimic 零样本跟踪，本页选段与审计思路受其启发）；LAFAN1 = Ubisoft La Forge（CC BY-NC-ND 4.0），G1 重定向版取自 lvhaidong/LAFAN1_Retargeting_Dataset。</p>
+      <p class="sec-note"><b>诚实定位</b>：管线非原创——「视频 → 重定向 → 物理跟踪」是人形动作跟踪生态的既定路线，可行性已被先行工作证成；本项目的增量 = <b>9 名舞者的全量评测 + 舞蹈强度选段方法 + Mac 本地纯 CPU 全链复现 + 呈现层</b>（本页与两条视频）。纯仿真趣味 demo：无真机、无训练、无微调，不构成研究贡献。</p>
+    </section>
+
+    <footer class="ds-footer">SuperMimic 复现策略（98k checkpoint，LAFAN1 训练）· MuJoCo 物理仿真 · macOS arm64 纯 CPU 评测 · 纯仿真无真机<br>
+      代码、脚本与评测产物见 <a href="https://github.com/ranpin/supermimic-dance">github.com/ranpin/supermimic-dance</a> · 运动学前作 <a href="https://ranpin.github.io/spring-festival-dance-robot/">spring-festival-dance-robot</a></footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "norm_return": 0.6865525841712952,
+  "norm_return_framew": 0.6865525245666504,
+  "n_failed": 0,
+  "failed": [],
+  "per_clip": {
+    "excerpt_track1": 0.7107,
+    "excerpt_track2": 0.6303,
+    "excerpt_track3": 0.6777,
+    "excerpt_track4": 0.764,
+    "excerpt_track5": 0.762,
+    "excerpt_track6": 0.7102,
+    "excerpt_track7": 0.6813,
+    "excerpt_track8": 0.6901,
+    "excerpt_track9": 0.5527
+  }
+}

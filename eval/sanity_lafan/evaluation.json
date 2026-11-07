@@ -1,0 +1,10 @@
+{
+  "norm_return": 0.886939525604248,
+  "norm_return_framew": 0.8984948992729187,
+  "n_failed": 0,
+  "failed": [],
+  "per_clip": {
+    "dance1_subject1": 0.852,
+    "walk1_subject1": 0.9219
+  }
+}
