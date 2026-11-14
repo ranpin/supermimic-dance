@@ -64,22 +64,22 @@
       <h2 class="ds-h2">演示</h2>
       <div class="sd-task">
         <p><b>你在看什么</b>：左边是<b>输入</b>——2025 春晚群舞视频的高潮选段（29–37s）；右边是<b>输出</b>——Unitree G1 人形机器人在 MuJoCo <b>物理仿真</b>里跳同一支舞。机器人不是回放关节角：一个只在 mocap 数据（LAFAN1）上训练过的跟踪策略<b>从没见过这段舞</b>，它每个控制步（50 Hz）读自己的本体感知 + 未来 10 帧参考动作，输出关节目标，由物理引擎算出平衡、接地与全身动力学——<b>摔了就是摔了，没有运动学兜底</b>。</p>
-        <p><b>怎么读画面</b>：视频顶部标签条给出管线、图例与指标。hero 视频右侧面板里<b>实体机器人</b> = 策略驱动的物理仿真结果，<b>青色半透明虚影</b> = 从视频重定向出的参考动作（同一世界坐标系）——两者贴得越近，跟踪越准；齐舞视频为 <b>9 台实体机器人同一场景</b>（无虚影）。</p>
+        <p><b>怎么读画面</b>：视频顶部标签条给出管线、图例与指标。<b>齐舞视频是主对比</b>——9 台实体机器人在同一场景，各自零样本跟踪输入视频里对应的那位舞者（9 对 9，公平比较）。hero 视频是单机细节：右侧面板里<b>实体机器人</b> = 策略驱动的物理仿真结果（它对应 9 位舞者中的<b>第 4 位</b>），<b>青色半透明虚影</b> = 机器人的<b>动作目标</b>（从视频重定向出的参考动作）——两者贴得越近，跟踪越准。<b>预期管理</b>：这是零样本 OOD 跟踪（策略只在 mocap 上训过、从没见过这段舞），<b>手臂在快速动作处偏差最明显</b>（关节均值 6–8°、峰值更高），实体与虚影的差距就是这个诚实的跟踪误差带，<b>不是 bug</b>。</p>
       </div>
 
       <div class="sd-vcard"><figure>
-        <video controls preload="metadata" src="assets/demo_hero.mp4"></video>
-        <figcaption class="sd-vcap"><b>舞者 4 · 输入视频选段 ｜ 物理跟踪（ghost 对比）</b><br>
-        8s 选段完片 · <span class="sd-ok">0 失败</span> · return 0.764（9 名舞者最高）· 关节 MAE 6.1° · 对齐 MPJPE 4.6cm</figcaption>
-      </figure></div>
-
-      <div class="sd-vcard"><figure>
         <video controls preload="metadata" src="assets/demo_formation.mp4"></video>
-        <figcaption class="sd-vcap"><b>9 台 G1 同一场景齐舞 · 各自跟踪对应舞者的重定向动作</b>（与左侧输入视频同一时间窗；9 条独立物理闭环合成到同一场景回放——舞者间无接触交互，与 9 次单独仿真物理等价；镜头跟随队形质心与朝向）<br>
+        <figcaption class="sd-vcap"><b>主对比 · 9 台 G1 同一场景齐舞</b>——每台零样本跟踪输入视频里对应的那位舞者（9 对 9，公平比较；与左侧输入同一时间窗；9 条独立物理闭环合成到同一场景回放，舞者间无接触交互、与 9 次单独仿真物理等价；镜头跟随队形质心与朝向）<br>
         9 条 8s 选段全部完片 · <span class="sd-ok">0 失败</span> · return 0.553–0.764（均值 0.687）· 关节 MAE 5.8–8.4° · 队形保持（相对散开 ≤0.9m）</figcaption>
       </figure></div>
 
-      <p class="demo-note">两条视频均为<b>零样本</b>结果：策略权重是 SuperMimic-MuJoCo 复现仓发布的 98k checkpoint（训练集只有 LAFAN1 的 40 条 mocap 重定向动作），对本舞蹈<b>无任何微调</b>。hero 视频后段实体与虚影会渐渐分开 = 纯本体感知策略的<b>世界系全局漂移</b>（舞姿本身保持同步，漂的是舞台位置）——量化见「评测结果」的世界系根漂移列。前作 <a href="https://ranpin.github.io/spring-festival-dance-robot/" target="_blank" rel="noopener">spring-festival-dance-robot</a> 是同一支视频的运动学重定向回放（无物理），本页是它的物理版续作。</p>
+      <div class="sd-vcard"><figure>
+        <video controls preload="metadata" src="assets/demo_hero.mp4"></video>
+        <figcaption class="sd-vcap"><b>单机细节 · track4 物理跟踪（ghost 对比）</b>——机器人对应 9 位舞者中的<b>第 4 位</b>；青色半透明虚影 = 动作目标（视频重定向参考），实体机器人 = 策略实际跟踪，二者差距 = 零样本跟踪误差<br>
+        8s 选段完片 · <span class="sd-ok">0 失败</span> · return 0.764（9 名舞者最高）· 关节 MAE 6.1° · 对齐 MPJPE 4.6cm</figcaption>
+      </figure></div>
+
+      <p class="demo-note">两条视频均为<b>零样本</b>结果：策略权重是 SuperMimic-MuJoCo 复现仓发布的 98k checkpoint（训练集只有 LAFAN1 的 40 条 mocap 重定向动作），对本舞蹈<b>无任何微调</b>。<b>跟踪误差是诚实边界、不是 bug</b>：该策略优先保平衡而非手臂精确，快速动作处<b>手臂偏差最明显</b>（关节均值 6.5–8.2°、峰值更高；对齐 MPJPE 4.8–6.4cm），正落在它的 OOD 发布带（100STYLE 未见动作 6.99°）内——比 mocap 库内（4.40°）噪、与未见 mocap 同级，符合「视频 HMR 比重定向 mocap 噪声大」的预期。hero 视频后段实体与虚影渐渐分开 = 纯本体感知策略的<b>世界系全局漂移</b>（舞姿本身保持同步，漂的是舞台位置）——量化见「评测结果」的世界系根漂移列。前作 <a href="https://ranpin.github.io/spring-festival-dance-robot/" target="_blank" rel="noopener">spring-festival-dance-robot</a> 是同一支视频的运动学重定向回放（无物理），本页是它的物理版续作。</p>
     </section>
 
     <!-- ============ 评测结果 ============ -->
