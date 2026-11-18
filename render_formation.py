@@ -71,11 +71,46 @@ def robot_geom_ids(model, i):
     return ids
 
 
+def separate_overlaps(xy, min_dist, iters=80):
+    """Nudge overlapping robots apart so all N are visually distinct.
+
+    Monocular retargeting collapses the depth of front/back dancers, so some pairs
+    share nearly the same xy position and render on top of each other (looks like
+    fewer robots). This is a visualization aid: push overlapping pairs apart to
+    min_dist while preserving each frame's centroid; joint motion is untouched.
+    xy: (T, N, 2). Returns separated (T, N, 2).
+    """
+    out = xy.copy()
+    T, N, _ = xy.shape
+    for t in range(T):
+        p = out[t].copy()
+        c0 = p.mean(0)
+        for _ in range(iters):
+            moved = False
+            for i in range(N):
+                for j in range(i + 1, N):
+                    dvec = p[j] - p[i]
+                    dist = np.linalg.norm(dvec)
+                    if dist < min_dist:
+                        u = dvec / dist if dist > 1e-6 else np.array([1.0, 0.0])
+                        push = (min_dist - dist) / 2 + 0.005
+                        p[i] -= u * push
+                        p[j] += u * push
+                        moved = True
+            if not moved:
+                break
+        p += c0 - p.mean(0)
+        out[t] = p
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("rollout")
     ap.add_argument("out")
     ap.add_argument("--max-frames", type=int, default=None)
+    ap.add_argument("--min-sep", type=float, default=0.5,
+                    help="min pairwise xy separation (m) for visualization; 0 disables")
     args = ap.parse_args()
 
     d = np.load(args.rollout, allow_pickle=True)
@@ -85,6 +120,17 @@ def main():
     T = root_p.shape[0]
     if args.max_frames:
         T = min(T, args.max_frames)
+
+    if args.min_sep > 0:
+        sep = separate_overlaps(root_p[:T, :, :2], args.min_sep)
+        kk = min(10, (T - 1) // 2)
+        kern = np.ones(2 * kk + 1) / (2 * kk + 1)
+        for c in range(2):
+            sep[:, :, c] = np.stack([
+                np.convolve(np.pad(sep[:, i, c], (kk, kk), mode="edge"), kern, mode="valid")
+                for i in range(N)], 1)
+        root_p[:T, :, :2] = sep
+        print(f"min-sep visualization: enforced >= {args.min_sep}m pairwise xy separation")
 
     model = build_model()
     data = mujoco.MjData(model)
